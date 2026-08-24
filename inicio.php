@@ -140,6 +140,24 @@
         return $total;
     }
     
+    function register_empleado(&$empleado)
+    {
+        do{
+            echo "\n--- Registrar empleado ---\n";
+            $nombre = validar_vacio("Nombre: ");
+            $especialidad = validar_vacio("Especialidad: ");
+
+            $empleados[] = ['nombre' => $nombre, 'especialidad' => $especialidad];
+            echo "Empleado registrado correctamente.\n";
+
+            $otro = strtolower(leer("¿Registrar otro empleado? (s/n): "));
+        }while($otro === 's');
+    }
+
+    function register_date()
+    {
+        
+    }
 
     
 

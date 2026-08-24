@@ -464,7 +464,8 @@ function mostrarMenu() {
 }
 
 function pausar() {
-    leer("\nPresione Enter para continuar...");
+    leer("\nPresione Enter para continuar...\n") . "Espere 1 segundo para continuar...";
+    
 }
 
 $opcion = "";
