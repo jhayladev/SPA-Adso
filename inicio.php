@@ -18,15 +18,15 @@
         ['nombre' => 'Tratamiento antiedad', 'precio' => 120000, 'duracion' => 2],
     ];
 
-    function Read_Msg($msg)
+    function read_msg($msg)
     {
         return trim(readline($msg));
     }
 
-    function Validar_Vacio($msg)
+    function validar_vacio($msg)
     {
         do{
-            $valor = Read_Msg($msg);
+            $valor = read_msg($msg);
             if ($valor === ''){
                 echo "Este campo no puede estar vacio";
             }
@@ -34,10 +34,10 @@
         return $valor;
     }
 
-    function ReadDias($msg, $dias_validos)
+    function read_dias($msg, $dias_validos)
     {
         do {
-            $dia = strtolower(Read_Msg($msg));
+            $dia = strtolower(read_msg($msg));
             $valido = in_array($dia, $dias_validos, true);
             if(!$valido)
             {
@@ -56,10 +56,10 @@
         return $dia;
     }
 
-    function ReadHora($msg)
+    function read_hora($msg)
     {
         do{ 
-            $hora = Read_Msg($msg);
+            $hora = read_msg($msg);
             $valido = ctype_digit($hora) && (int)$hora >= 8 && (int)$hora <=18;
             if(!$valido){
                 echo "La hora debe ser un numero entre 8 y 18. \n";
@@ -68,10 +68,10 @@
         return (int)$hora;
     }
 
-    function Num_in_List ($msg, $items)
+    function num_in_list ($msg, $items)
     {
         do{
-            $num = Read_Msg($msg);
+            $num = read_msg($msg);
             $valido = ctype_digit($num) && (int)$num >= 1 && (int)$num <= $items;
             if(!$valido){
                 echo "Numero invalido, intente otra vez. \n";
@@ -80,10 +80,66 @@
         return (int)$num ;
     }
 
-    function Format_Money ($valor)
+    function format_money ($valor)
     {
         return "$" . number_format($valor, 0, ',', '.');
     }
+
+    function space_right($texto, $ancho)
+    {
+        $texto = (string)$texto;
+        while (strlen($texto) < $ancho)
+        {
+            $texto = $texto . " ";
+        }
+        return $texto;
+    }
+
+    function space_left($texto, $ancho)
+    {
+        $texto = (string)$texto;
+        while (strlen($texto) < $ancho)
+        {
+            $texto = " " . $texto ;
+        }
+        return $texto;
+    }
+
+    function line_repeat($caracter, $cantidad) 
+    {
+        $linea = "";
+        for ($i = 0; $i < $cantidad; $i++)
+        {
+            $linea = $linea . $caracter;
+        }
+        return $linea;
+    }
+
+    function duration_date($cita, $catalogo)
+    {
+        $total = 0;
+        foreach($cita['servicios'] as $idServicio)
+        {
+            $total += $catalogo[$idServicio]['duracion'];
+        }
+        return $total;
+    }
+
+    function end_date($cita, $catalogo)
+    {
+        return $cita['hora'] + duration_date($cita, $catalogo);
+    }
+
+    function total_date($cita, $catalogo)
+    {
+        $total = 0;
+        foreach($cita['servicios'] as $idServicio)
+        {
+            $total += $catalogo[$idServicio]['precio'];
+        }
+        return $total;
+    }
+    
 
     
 
