@@ -509,22 +509,22 @@ while ($opcion !== "8") {
             break;
 
         case "4":
-            echo "\nPróximamente disponible.\n";
+            servicioMasSolicitado($citas, $catalogo);
             pausar();
             break;
 
         case "5":
-            echo "\nPróximamente disponible.\n";
+            agendaDeUnDia($citas, $empleados, $catalogo, $diasValidos);
             pausar();
             break;
 
         case "6":
-            echo "\nPróximamente disponible.\n";
+            deteccionConflictos($citas, $empleados, $catalogo);
             pausar();
             break;
 
         case "7":
-            echo "\nPróximamente disponible.\n";
+            liquidacionComisiones($citas, $empleados, $catalogo);
             pausar();
             break;
 
