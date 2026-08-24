@@ -36,7 +36,14 @@ function leerDia($mensaje, $diasValidos) {
         $dia = strtolower(leer($mensaje));
         $valido = in_array($dia, $diasValidos, true);
         if (!$valido) {
-            echo "Día inválido. Use uno de: " . implode(", ", $diasValidos) . "\n";
+            $listaDias = "";
+            for ($i = 0; $i < count($diasValidos); $i++) {
+                if ($i > 0) {
+                    $listaDias = $listaDias . ", ";
+                }
+                $listaDias = $listaDias . $diasValidos[$i];
+            }
+            echo "Día inválido. Use uno de: " . $listaDias . "\n";
         }
     } while (!$valido);
     return $dia;
@@ -66,6 +73,35 @@ function leerNumeroEnLista($mensaje, $totalItems) {
 
 function formatearDinero($valor) {
     return "$" . number_format($valor, 0, ',', '.');
+}
+
+// --- Funciones propias de formato de texto (reemplazan printf, str_repeat, implode) ---
+
+// Agrega espacios a la DERECHA hasta completar el ancho. Ej: espacioDerecha("Ana", 6) -> "Ana   "
+function espacioDerecha($texto, $ancho) {
+    $texto = (string) $texto;
+    while (strlen($texto) < $ancho) {
+        $texto = $texto . " ";
+    }
+    return $texto;
+}
+
+// Agrega espacios a la IZQUIERDA hasta completar el ancho. Ej: espacioIzquierda("5", 4) -> "   5"
+function espacioIzquierda($texto, $ancho) {
+    $texto = (string) $texto;
+    while (strlen($texto) < $ancho) {
+        $texto = " " . $texto;
+    }
+    return $texto;
+}
+
+// Repite un caracter "cantidad" veces. Ej: linea_repetida("-", 5) -> "-----"
+function linea_repetida($caracter, $cantidad) {
+    $linea = "";
+    for ($i = 0; $i < $cantidad; $i++) {
+        $linea = $linea . $caracter;
+    }
+    return $linea;
 }
 
 function duracionCita($cita, $catalogo) {
@@ -110,7 +146,7 @@ function registrarCita(&$citas, $empleados, $catalogo, $diasValidos) {
     echo "\n--- Registrar cita ---\n";
     echo "Empleados disponibles:\n";
     foreach ($empleados as $i => $empleado) {
-        printf("%d. %s (%s)\n", $i + 1, $empleado['nombre'], $empleado['especialidad']);
+        echo ($i + 1) . ". " . $empleado['nombre'] . " (" . $empleado['especialidad'] . ")\n";
     }
     $numEmpleado = leerNumeroEnLista("Seleccione el número del empleado: ", count($empleados));
     $idEmpleado = $numEmpleado - 1;
@@ -123,7 +159,7 @@ function registrarCita(&$citas, $empleados, $catalogo, $diasValidos) {
     do {
         echo "Catálogo de servicios:\n";
         foreach ($catalogo as $i => $servicio) {
-            printf("%d. %-25s %12s  %dh\n", $i + 1, $servicio['nombre'], formatearDinero($servicio['precio']), $servicio['duracion']);
+            echo ($i + 1) . ". " . espacioDerecha($servicio['nombre'], 25) . espacioIzquierda(formatearDinero($servicio['precio']), 12) . "  " . $servicio['duracion'] . "h\n";
         }
         $numServicio = leerNumeroEnLista("Seleccione el número del servicio: ", count($catalogo));
         $servicios[] = $numServicio - 1;
@@ -150,83 +186,125 @@ function totalFacturadoPorEmpleado($citas, $empleados, $catalogo) {
         return;
     }
 
-    $totales = array_fill(0, count($empleados), 0);
+    // arreglo de totales en 0, uno por cada empleado
+    $totales = [];
+    for ($i = 0; $i < count($empleados); $i++) {
+        $totales[] = 0;
+    }
+
     foreach ($citas as $cita) {
-        $totales[$cita['empleado']] += totalCita($cita, $catalogo);
+        $idEmp = $cita['empleado'];
+        $totales[$idEmp] = $totales[$idEmp] + totalCita($cita, $catalogo);
     }
 
     $filas = [];
-    foreach ($empleados as $i => $empleado) {
-        $filas[] = ['nombre' => $empleado['nombre'], 'total' => $totales[$i]];
+    for ($i = 0; $i < count($empleados); $i++) {
+        $filas[] = ['nombre' => $empleados[$i]['nombre'], 'total' => $totales[$i]];
     }
-    usort($filas, function ($a, $b) {
-        return $b['total'] <=> $a['total'];
-    });
 
-    printf("%-25s %15s\n", "Empleado", "Total facturado");
-    echo str_repeat("-", 41) . "\n";
+    // ordenar de mayor a menor total (burbuja simple)
+    for ($i = 0; $i < count($filas); $i++) {
+        for ($j = 0; $j < count($filas) - 1 - $i; $j++) {
+            if ($filas[$j]['total'] < $filas[$j + 1]['total']) {
+                $temp = $filas[$j];
+                $filas[$j] = $filas[$j + 1];
+                $filas[$j + 1] = $temp;
+            }
+        }
+    }
+
+    echo espacioDerecha("Empleado", 25) . espacioIzquierda("Total facturado", 15) . "\n";
+    echo linea_repetida("-", 41) . "\n";
     foreach ($filas as $fila) {
-        printf("%-25s %15s\n", $fila['nombre'], formatearDinero($fila['total']));
+        echo espacioDerecha($fila['nombre'], 25) . espacioIzquierda(formatearDinero($fila['total']), 15) . "\n";
     }
 }
 
 function servicioMasSolicitado($citas, $catalogo) {
     echo "\n--- Servicio más solicitado ---\n";
 
-    $conteo = array_fill(0, count($catalogo), 0);
-    $facturado = array_fill(0, count($catalogo), 0);
+    $conteo = [];
+    $facturado = [];
+    for ($i = 0; $i < count($catalogo); $i++) {
+        $conteo[] = 0;
+        $facturado[] = 0;
+    }
 
     foreach ($citas as $cita) {
         foreach ($cita['servicios'] as $idServicio) {
-            $conteo[$idServicio]++;
-            $facturado[$idServicio] += $catalogo[$idServicio]['precio'];
+            $conteo[$idServicio] = $conteo[$idServicio] + 1;
+            $facturado[$idServicio] = $facturado[$idServicio] + $catalogo[$idServicio]['precio'];
         }
     }
 
-    if (array_sum($conteo) === 0) {
+    $totalServicios = 0;
+    for ($i = 0; $i < count($conteo); $i++) {
+        $totalServicios = $totalServicios + $conteo[$i];
+    }
+
+    if ($totalServicios === 0) {
         echo "No hay servicios registrados todavía.\n";
         return;
     }
 
-    $maxVeces = max($conteo);
-    $idGanador = array_search($maxVeces, $conteo, true);
+    // buscar cuál servicio tiene el conteo más alto
+    $idGanador = 0;
+    for ($i = 1; $i < count($conteo); $i++) {
+        if ($conteo[$i] > $conteo[$idGanador]) {
+            $idGanador = $i;
+        }
+    }
 
-    printf("%-25s %10s %15s\n", "Servicio", "Veces", "Facturado");
-    echo str_repeat("-", 51) . "\n";
-    printf("%-25s %10d %15s\n", $catalogo[$idGanador]['nombre'], $maxVeces, formatearDinero($facturado[$idGanador]));
+    echo espacioDerecha("Servicio", 25) . espacioIzquierda("Veces", 10) . espacioIzquierda("Facturado", 15) . "\n";
+    echo linea_repetida("-", 51) . "\n";
+    echo espacioDerecha($catalogo[$idGanador]['nombre'], 25) . espacioIzquierda($conteo[$idGanador], 10) . espacioIzquierda(formatearDinero($facturado[$idGanador]), 15) . "\n";
 }
 
 function agendaDeUnDia($citas, $empleados, $catalogo, $diasValidos) {
     echo "\n--- Agenda de un día ---\n";
     $dia = leerDia("¿Qué día desea consultar?: ", $diasValidos);
 
-    $citasDelDia = array_values(array_filter($citas, function ($cita) use ($dia) {
-        return $cita['dia'] === $dia;
-    }));
+    // filtrar manualmente las citas de ese día
+    $citasDelDia = [];
+    foreach ($citas as $cita) {
+        if ($cita['dia'] === $dia) {
+            $citasDelDia[] = $cita;
+        }
+    }
 
-    if (empty($citasDelDia)) {
+    if (count($citasDelDia) === 0) {
         echo "No hay citas registradas para {$dia}.\n";
         return;
     }
 
-    usort($citasDelDia, function ($a, $b) {
-        return $a['hora'] <=> $b['hora'];
-    });
+    // ordenar por hora, de menor a mayor (burbuja simple)
+    for ($i = 0; $i < count($citasDelDia); $i++) {
+        for ($j = 0; $j < count($citasDelDia) - 1 - $i; $j++) {
+            if ($citasDelDia[$j]['hora'] > $citasDelDia[$j + 1]['hora']) {
+                $temp = $citasDelDia[$j];
+                $citasDelDia[$j] = $citasDelDia[$j + 1];
+                $citasDelDia[$j + 1] = $temp;
+            }
+        }
+    }
 
-    printf("%-6s %-20s %-18s %s\n", "Hora", "Empleado", "Cliente", "Servicios");
-    echo str_repeat("-", 75) . "\n";
+    echo espacioDerecha("Hora", 6) . espacioDerecha("Empleado", 20) . espacioDerecha("Cliente", 18) . "Servicios\n";
+    echo linea_repetida("-", 75) . "\n";
     foreach ($citasDelDia as $cita) {
-        $nombresServicios = array_map(function ($id) use ($catalogo) {
-            return $catalogo[$id]['nombre'];
-        }, $cita['servicios']);
+        // armar el texto de servicios a mano, sin array_map ni implode
+        $textoServicios = "";
+        for ($i = 0; $i < count($cita['servicios']); $i++) {
+            if ($i > 0) {
+                $textoServicios = $textoServicios . ", ";
+            }
+            $idServicio = $cita['servicios'][$i];
+            $textoServicios = $textoServicios . $catalogo[$idServicio]['nombre'];
+        }
 
-        printf(
-            "%-6s %-20s %-18s %s\n",
-            $cita['hora'] . ":00",
-            $empleados[$cita['empleado']]['nombre'],
-            $cita['cliente'],
-            implode(", ", $nombresServicios)
-        );
+        echo espacioDerecha($cita['hora'] . ":00", 6);
+        echo espacioDerecha($empleados[$cita['empleado']]['nombre'], 20);
+        echo espacioDerecha($cita['cliente'], 18);
+        echo $textoServicios . "\n";
     }
 }
 
@@ -272,34 +350,62 @@ function liquidacionComisiones($citas, $empleados, $catalogo) {
         return;
     }
 
-    $totales = array_fill(0, count($empleados), 0);
-    $numCitas = array_fill(0, count($empleados), 0);
-
-    foreach ($citas as $cita) {
-        $totales[$cita['empleado']] += totalCita($cita, $catalogo);
-        $numCitas[$cita['empleado']]++;
+    $totales = [];
+    $numCitas = [];
+    for ($i = 0; $i < count($empleados); $i++) {
+        $totales[] = 0;
+        $numCitas[] = 0;
     }
 
-    $maxTotal = max($totales);
+    foreach ($citas as $cita) {
+        $idEmp = $cita['empleado'];
+        $totales[$idEmp] = $totales[$idEmp] + totalCita($cita, $catalogo);
+        $numCitas[$idEmp] = $numCitas[$idEmp] + 1;
+    }
 
-    printf("%-22s %8s %15s %12s %15s\n", "Empleado", "Citas", "Facturado", "Comisión", "Total a pagar");
-    echo str_repeat("-", 76) . "\n";
-    foreach ($empleados as $i => $empleado) {
-        $porcentaje = $numCitas[$i] >= 6 ? 0.12 : 0.08;
+    // buscar el total más alto, a mano
+    $maxTotal = $totales[0];
+    for ($i = 1; $i < count($totales); $i++) {
+        if ($totales[$i] > $maxTotal) {
+            $maxTotal = $totales[$i];
+        }
+    }
+
+    echo espacioDerecha("Empleado", 22) . espacioIzquierda("Citas", 8) . espacioIzquierda("Facturado", 15) . espacioIzquierda("Comisión", 12) . espacioIzquierda("Total a pagar", 15) . "\n";
+    echo linea_repetida("-", 76) . "\n";
+
+    for ($i = 0; $i < count($empleados); $i++) {
+        // porcentaje como número Y como texto, para no depender de round()
+        // (0.12 * 100 en decimales a veces da 11.999999... por eso antes se usaba round)
+        if ($numCitas[$i] >= 6) {
+            $porcentaje = 0.12;
+            $porcentajeTexto = "12";
+        } else {
+            $porcentaje = 0.08;
+            $porcentajeTexto = "8";
+        }
+
         $comision = $totales[$i] * $porcentaje;
-        $bono = ($totales[$i] === $maxTotal && $maxTotal > 0) ? 50000 : 0;
+
+        if ($totales[$i] === $maxTotal && $maxTotal > 0) {
+            $bono = 50000;
+        } else {
+            $bono = 0;
+        }
+
         $totalPagar = $comision + $bono;
 
-        $etiqueta = round($porcentaje * 100) . "%" . ($bono > 0 ? " +bono" : "");
+        $etiqueta = $porcentajeTexto . "%";
+        if ($bono > 0) {
+            $etiqueta = $etiqueta . " +bono";
+        }
 
-        printf(
-            "%-22s %8d %15s %12s %15s\n",
-            $empleado['nombre'],
-            $numCitas[$i],
-            formatearDinero($totales[$i]),
-            $etiqueta,
-            formatearDinero($totalPagar)
-        );
+        echo espacioDerecha($empleados[$i]['nombre'], 22);
+        echo espacioIzquierda($numCitas[$i], 8);
+        echo espacioIzquierda(formatearDinero($totales[$i]), 15);
+        echo espacioIzquierda($etiqueta, 12);
+        echo espacioIzquierda(formatearDinero($totalPagar), 15);
+        echo "\n";
     }
 }
 
@@ -403,26 +509,22 @@ while ($opcion !== "8") {
             break;
 
         case "4":
-            // Pendiente: se termina más adelante
-            echo "\nEsta opción todavía no está lista.\n";
+            echo "\nPróximamente disponible.\n";
             pausar();
             break;
 
         case "5":
-            // Pendiente: se termina más adelante
-            echo "\nEsta opción todavía no está lista.\n";
+            echo "\nPróximamente disponible.\n";
             pausar();
             break;
 
         case "6":
-            // Pendiente: se termina más adelante
-            echo "\nEsta opción todavía no está lista.\n";
+            echo "\nPróximamente disponible.\n";
             pausar();
             break;
 
         case "7":
-            // Pendiente: se termina más adelante
-            echo "\nEsta opción todavía no está lista.\n";
+            echo "\nPróximamente disponible.\n";
             pausar();
             break;
 
