@@ -185,21 +185,64 @@ function total_date($cita, $catalogo)
     return $total;
 }
 
-function register_empleado(&$emp)
+function nombres_catalogo($catalogo)
 {
+    $nombres = [];
+    foreach ($catalogo as $servicio)
+    {
+        $nombres[] = $servicio['nombre'];
+    }
+    return $nombres;
+}
+
+function read_especialidad_valida($nombres_catalogo)
+{
+    do
+    {
+        echo "Especialidades disponibles:\n";
+
+        for ($i = 0; $i < count($nombres_catalogo); $i++)
+        {
+            echo ($i + 1) . ". " . $nombres_catalogo[$i] . "\n";
+        }
+
+        $numero = read_msg("Seleccione el numero de la especialidad: ");
+
+        if (ctype_digit($numero) && (int)$numero >= 1 && (int)$numero <= count($nombres_catalogo))
+        {
+            return $nombres_catalogo[(int)$numero - 1];
+        }
+
+        echo "Numero invalido, intente otra vez.\n\n";
+
+    } while (true);
+}
+
+function register_empleado(&$emp, $catalogo)
+{
+    $nombres_disponibles = nombres_catalogo($catalogo);
+
     do
     {
         echo "\n--- Registrar empleado ---\n";
         $nombre = validar_vacio("Nombre: ");
 
         $especialidades = [];
-        do
-        {
-            $especialidad = validar_vacio("Especialidad: ");
-            $especialidades[] = $especialidad;
-            $otra = strtolower(read_msg("Agregar otra especialidad? (s/n): "));
-        } while ($otra === 's');
 
+        do{
+            $especialidad = read_especialidad_valida($nombres_disponibles);
+
+            if(in_array($especialidad, $especialidades, true))
+            {
+                echo "Esa especialidad ya fue agregada. \n";
+            }
+            else
+            {
+                $especialidades[] = $especialidad;
+            }
+
+            $otra =strtolower(read_msg("Agregar otra especialidad? (s/n): "));
+        } while($otra === 's');
         $emp[] = ['nombre' => $nombre, 'especialidades' => $especialidades];
         echo "Empleado registrado correctamente.\n";
 
@@ -224,6 +267,22 @@ function register_date(&$citas, $emp, $catalogo, $dias_validos)
     $num_empleado = num_in_list("Seleccione el numero del empleado: ", count($emp));
     $id_empleado = $num_empleado - 1;
 
+    $especialidades_emp = $emp[$id_empleado]['especialidades'];
+    $indices_disponibles = [];
+    for ($i = 0; $i < count($catalogo); $i++)
+    {
+        if (in_array($catalogo[$i]['nombre'], $especialidades_emp, true))
+        {
+            $indices_disponibles[] = $i;
+        }
+    }
+
+    if (empty($indices_disponibles))
+    {
+        echo "\nEste empleado no tiene especialidades registradas en el catalogo de servicios. No se puede agendar la cita.\n";
+        return;
+    }
+
     $cliente = validar_vacio("Cliente: ");
     $dia = read_dia("Dia (lunes a sabado): ", $dias_validos);
     $hora = read_hora("Hora de inicio (HH:MM, entre 08:00 y 18:00): ");
@@ -231,13 +290,14 @@ function register_date(&$citas, $emp, $catalogo, $dias_validos)
     $servicios = [];
     do
     {
-        echo "Catalogo de servicios:\n";
-        for ($i = 0; $i < count($catalogo); $i++)
+        echo "Servicios que puede realizar " . $emp[$id_empleado]['nombre'] . ":\n";
+        for ($i = 0; $i < count($indices_disponibles); $i++)
         {
-            echo ($i + 1) . ". " . space_right($catalogo[$i]['nombre'], 25) . space_left(format_money($catalogo[$i]['precio']), 12) . "  " . $catalogo[$i]['duracion'] . "h\n";
+            $id_catalogo = $indices_disponibles[$i];
+            echo ($i + 1) . ". " . space_right($catalogo[$id_catalogo]['nombre'], 25) . space_left(format_money($catalogo[$id_catalogo]['precio']), 12) . "  " . $catalogo[$id_catalogo]['duracion'] . "h\n";
         }
-        $num_servicio = num_in_list("Seleccione el numero del servicio: ", count($catalogo));
-        $servicios[] = $num_servicio - 1;
+        $num_servicio = num_in_list("Seleccione el numero del servicio: ", count($indices_disponibles));
+        $servicios[] = $indices_disponibles[$num_servicio - 1];
 
         $otro = strtolower(read_msg("Agregar otro servicio a esta cita? (s/n): "));
     } while ($otro === 's');
@@ -528,7 +588,7 @@ function cargar_datos_prueba(&$emp, &$citas)
     ];
 
     $citas = [
-        ['empleado' => 0, 'cliente' => 'Maria Peña',     'dia' => 'lunes',     'hora' => 480, 'servicios' => [0]],
+        ['empleado' => 0, 'cliente' => 'Ayla Gonzales',  'dia' => 'lunes',     'hora' => 480, 'servicios' => [0]],
         ['empleado' => 0, 'cliente' => 'Juana Rios',     'dia' => 'lunes',     'hora' => 660, 'servicios' => [1]],
         ['empleado' => 1, 'cliente' => 'Pedro Gomez',    'dia' => 'martes',    'hora' => 600, 'servicios' => [3]],
         ['empleado' => 1, 'cliente' => 'Luis Cano',      'dia' => 'martes',    'hora' => 780, 'servicios' => [4]],
@@ -606,7 +666,7 @@ while ($opcion !== "8")
             break;
 
         case "1":
-            register_empleado($emp);
+            register_empleado($emp, $catalogo_servicio);
             pausar();
             break;
 
