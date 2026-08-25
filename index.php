@@ -587,43 +587,31 @@ while ($opcion !== "8")
     mostrar_menu();
     $opcion = read_msg("Seleccione una opcion: ");
 
+    $opciones_bloqueables = ["dp", "1", "2"];
+
+    if (in_array($opcion, $opciones_bloqueables, true) && $datos_cargados)
+    {
+        echo "\nOpcion no disponible: los datos de prueba ya fueron cargados.\n";
+        pausar();
+        continue;
+    }
+
     switch ($opcion)
     {
         case "dp":
-            if ($datos_cargados)
-            {
-                echo "\nOpcion no disponible: los datos de prueba ya fueron cargados.\n";
-            }
-            else
-            {
-                cargar_datos_prueba($emp, $citas);
-                $datos_cargados = true;
-                echo "\nDatos de prueba cargados exitosamente.\n";
-            }
+            cargar_datos_prueba($emp, $citas);
+            $datos_cargados = true;
+            echo "\nDatos de prueba cargados exitosamente.\n";
             pausar();
             break;
 
         case "1":
-            if ($datos_cargados)
-            {
-                echo "\nOpcion no disponible: los datos de prueba ya fueron cargados.\n";
-            }
-            else
-            {
-                register_empleado($emp);
-            }
+            register_empleado($emp);
             pausar();
             break;
 
         case "2":
-            if ($datos_cargados)
-            {
-                echo "\nOpcion no disponible: los datos de prueba ya fueron cargados.\n";
-            }
-            else
-            {
-                register_date($citas, $emp, $catalogo_servicio, $dias_validos);
-            }
+            register_date($citas, $emp, $catalogo_servicio, $dias_validos);
             pausar();
             break;
 
@@ -661,3 +649,4 @@ while ($opcion !== "8")
             pausar();
     }
 }
+// esto no tiene ia, mera logitec.com
